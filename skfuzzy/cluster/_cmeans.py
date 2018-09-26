@@ -2,6 +2,7 @@
 cmeans.py : Fuzzy C-means clustering algorithm.
 """
 import numpy as np
+import math
 from scipy.spatial.distance import cdist
 from .normalize_columns import normalize_columns, normalize_power_columns
 
@@ -81,6 +82,37 @@ def _fp_coeff(u):
 
     return np.trace(u.dot(u.T)) / float(n)
 
+def _fp_entropy(u):
+    """
+    Fuzzy partition entropy (fpe) relative to fuzzy c-partitioned
+    matrix `u`. Measures 'fuzziness' in partitioned clustering.
+
+    Parameters
+    ----------
+    u : 2d array (C, N)
+        Fuzzy c-partitioned matrix; N = number of data points and C = number
+        of clusters.
+
+    Returns
+    -------
+    entropy : float
+        Fuzzy partition coefficient.
+
+    """
+    fpe = 0
+    sum = 0
+
+    n = u.shape[1]
+    c = u.shape[0]
+
+    #sum along data points
+    for k in range(0, n-1):
+        #sum along clusters:
+        for i in range(0, c-1):
+            sum += u[i][k] * math.log(u[i][k])
+
+    fpe = -sum/n
+    return fpe
 
 def cmeans(data, c, m, error, maxiter, metric='euclidean', init=None, seed=None):
     """
@@ -178,8 +210,9 @@ def cmeans(data, c, m, error, maxiter, metric='euclidean', init=None, seed=None)
     # Final calculations
     error = np.linalg.norm(u - u2)
     fpc = _fp_coeff(u)
+    fpe = _fp_entropy(u)
 
-    return cntr, u, u0, d, jm, p, fpc
+    return cntr, u, u0, d, jm, p, fpc, fpe
 
 
 def cmeans_predict(test_data, cntr_trained, m, error, maxiter, metric='euclidean', init=None,
